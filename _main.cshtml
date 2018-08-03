@@ -1,0 +1,79 @@
+<style>
+.maingreeting {
+    width: 66%;
+    align: center;
+    margin: 0 auto;
+}
+hr {
+    border: none;
+    height: 1px;
+    color: #ba0000; /* old IE */
+    background-color: #ba0000; /* Modern Browsers */
+}
+.emptyblock {
+    height: 50px
+}
+</style>
+
+@{
+var greeting = "nulltest";
+
+if (DateTime.Now.Hour < 12) {
+        greeting = App.Resources.morning;
+    } else if (DateTime.Now.Hour < 19) {
+        greeting = App.Resources.afternoon;
+    } else {
+        greeting = App.Resources.nigth;
+    }
+    
+var tasksperuser = AsDynamic(App.Data["TasksPerUser"]).Where(p => p.User == Dnn.User.Username);
+var tasksperrole = AsDynamic(App.Data["TasksPerRole"]);
+var differentroles = tasksperrole.GroupBy(g => g.Role).Select(group => new {gRole = group.Key, gCount = group.Count()});
+var tasklist = AsDynamic(App.Data["Tasks"]);
+var custommessages = AsDynamic(App.Data["CustomMessageToUser"]).Where(t => t.User == Dnn.User.Username);
+var globalmessages = AsDynamic(App.Data["GlobalMessages"]);
+}
+@if (Request.IsAuthenticated) {
+
+    <div class="maingreeting">
+        <hr>
+        <p>@greeting @Dnn.User.Profile.GetPropertyValue("Prefix") @Dnn.User.FirstName @Dnn.User.LastName</p>
+        
+        @if(tasksperuser.Count() != 0) {
+            <p>@App.Resources.tasks :</p>
+            <ul>
+            @foreach(var q in tasksperuser){
+                <li>@Html.Raw(tasklist.First(x => x.TaskId.ToString() == q.Task).TaskDesc)</li>
+            }
+            </ul>
+            <br>
+        }
+        
+        @foreach(var d in differentroles){
+            if(@Dnn.User.IsInRole(d.gRole)) {
+                <p>@App.Resources.tasks no grupo @d.gRole :</p>
+                <ul>
+                    @foreach(var r in tasksperrole.Where(x => x.Role == d.gRole)){
+                    <li>@Html.Raw(tasklist.First(x => x.TaskId.ToString() == r.Task).TaskDesc)</li>
+                    }
+                </ul>
+                <br>
+            }
+        }
+        
+        
+        @foreach(var c in custommessages){
+            <p>@Html.Raw(c.Message)</p>
+        }
+        
+        @foreach(var g in globalmessages){
+            <p>@Html.Raw(g.Message)</p>
+        }
+    <hr>
+    </div>
+    <div class="emptyblock"></div>
+    
+}
+else {
+  <!-- you're not logged in -->
+}

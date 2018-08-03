@@ -1,0 +1,87 @@
+<style>
+.maingreeting {
+    width: 66%;
+    align: center;
+    margin: 0 auto;
+}
+hr {
+    border: none;
+    height: 1px;
+    color: #ba0000; /* old IE */
+    background-color: #ba0000; /* Modern Browsers */
+}
+.emptyblock {
+    height: 50px
+}
+</style>
+
+@{
+List<string> singleList = new List<string>();
+
+var greeting = "nulltest";
+
+if (DateTime.Now.Hour < 12) {
+        greeting = App.Resources.morning;
+    } else if (DateTime.Now.Hour < 19) {
+        greeting = App.Resources.afternoon;
+    } else {
+        greeting = App.Resources.nigth;
+    }
+    
+var tasksperuser = AsDynamic(App.Data["TasksPerUser"]).Where(p => p.User == Dnn.User.Username);
+var tasksperrole = AsDynamic(App.Data["TasksPerRole"]);
+var differentroles = tasksperrole.GroupBy(g => g.Role).Select(group => new {gRole = group.Key, gCount = group.Count()});
+var tasklist = AsDynamic(App.Data["Tasks"]);
+var custommessages = AsDynamic(App.Data["CustomMessageToUser"]).Where(t => t.User == Dnn.User.Username);
+var globalmessages = AsDynamic(App.Data["GlobalMessages"]);
+}
+@if (Request.IsAuthenticated) {
+
+    <div class="maingreeting">
+        <hr>
+        <p>@greeting @Dnn.User.Profile.GetPropertyValue("Prefix") @Dnn.User.FirstName @Dnn.User.LastName</p>
+        
+        @if(tasksperuser.Count() != 0) {
+            foreach(var q in tasksperuser){
+                singleList.Add(tasklist.First(x => x.TaskId.ToString() == q.Task).TaskDesc);
+            }
+        }
+        
+        @foreach(var d in differentroles){
+            if(@Dnn.User.IsInRole(d.gRole)) {
+                foreach(var r in tasksperrole.Where(x => x.Role == d.gRole)){
+                    singleList.Add(tasklist.First(x => x.TaskId.ToString() == r.Task).TaskDesc);
+                }
+            }
+        }
+        
+        
+        @foreach(var c in custommessages){
+            singleList.Add(c.Message);
+        }
+        
+        @foreach(var g in globalmessages){
+            singleList.Add(g.Message);
+        }
+        
+        <p>@App.Resources.tasks :</p>
+        
+        <ul>
+            @foreach (var task in singleList) {
+                <li>@Html.Raw(task)</li>
+            }
+        </ul>
+        <hr>
+    </div>
+    <div class="emptyblock"></div>
+    
+} else {
+    <div class="maingreeting">
+        <hr>
+        <p>@greeting utilizador convidado.</p>
+        <p>Se é um investigador de um dos projetos no investigar.pt, por favor faça o login para ter acesso aos mesmos.</p>
+        <hr>
+    </div>
+}
+
+<br><br>
